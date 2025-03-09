@@ -42,8 +42,6 @@ class HomeScreen extends StatelessWidget {
             price: 0,
             brand: 'Nike', // Valor predeterminado o vacío según prefieras
             gender: 'Hombre',
-            size: '0', // Define un valor adecuado
-            color: '#FFFFFF', // Color por defecto (blanco)
           );
           Navigator.pushNamed(context, 'product');
         },

@@ -112,9 +112,7 @@ class ProductsService extends ChangeNotifier {
 
   }
 
-  Future<String?> uploadImage() async {
-
-    if (  newPictureFile == null ) return null;
+  Future<String?> uploadImage(String imagePath) async {
 
     isSaving = true;
     notifyListeners();
@@ -123,7 +121,7 @@ class ProductsService extends ChangeNotifier {
 
     final imageUploadRequest = http.MultipartRequest('POST', url );
 
-    final file = await http.MultipartFile.fromPath('file', newPictureFile!.path );
+    final file = await http.MultipartFile.fromPath('file', imagePath );
 
     imageUploadRequest.files.add(file);
 
@@ -135,8 +133,6 @@ class ProductsService extends ChangeNotifier {
       print( resp.body );
       return null;
     }
-
-    newPictureFile = null;
 
     final decodedData = json.decode( resp.body );
     return decodedData['secure_url'];

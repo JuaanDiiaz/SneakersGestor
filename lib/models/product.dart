@@ -13,8 +13,7 @@ class Product {
         this.id,
         required this.brand,
         required this.gender,
-        required this.size,
-        required this.color,
+        this.details,
     });
 
     bool available;
@@ -24,8 +23,8 @@ class Product {
     String? id;
     String brand;
     String gender;
-    String size;
-    String color;
+    List<ProductDetails>? details;
+
 
     factory Product.fromJson(String str) => Product.fromMap(json.decode(str));
 
@@ -39,8 +38,7 @@ class Product {
         id: json["id"],
         brand: json["brand"],
         gender: json["gender"],
-        size: json["size"],
-        color: json["color"],
+        details: List<ProductDetails>.from(json["details"].map((x) => ProductDetails.fromMap(x))),
     );
 
     Map<String, dynamic> toMap() => {
@@ -51,8 +49,7 @@ class Product {
         "id": id,
         "brand": brand,
         "gender": gender,
-        "size": size,
-        "color": color,
+        "details": List<dynamic>.from(details!.map((x) => x.toMap())),
     };
 
     Product copy() => Product(
@@ -63,7 +60,35 @@ class Product {
       id: id,
       brand: brand,
       gender: gender,
-      size: size,
-      color: color,
+      details: details,
     );
+}
+
+
+class ProductDetails {
+    ProductDetails(this.color, this.sizes, this.mainImage, this.images);
+
+    String color;
+    List<Map<int,int>> sizes;
+    String mainImage;
+    List<String> images;
+
+
+    factory ProductDetails.fromJson(String str) => ProductDetails.fromMap(json.decode(str));
+
+    String toJson() => json.encode(toMap());
+
+    factory ProductDetails.fromMap(Map<String, dynamic> json) => ProductDetails(
+        json["color"],
+        List<Map<int,int>>.from(json["sizes"].map((x) => x)),
+        json["mainImage"],
+        List<String>.from(json["images"].map((x) => x)),
+    );
+
+    Map<String, dynamic> toMap() => {
+        "color": color,
+        "sizes": List<dynamic>.from(sizes.map((x) => x)),
+        "mainImage": mainImage,
+        "images": List<dynamic>.from(images.map((x) => x)),
+    };
 }

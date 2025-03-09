@@ -36,21 +36,7 @@ class _ProductScreenBody extends StatefulWidget {
 }
 
 class _ProductScreenBodyState extends State<_ProductScreenBody> {
-  List<File> _images = [];
-  String? _selectedImage;
-
-  Future<void> _pickImages() async {
-    final ImagePicker picker = ImagePicker();
-    final List<XFile>? pickedFiles = await picker.pickMultiImage();
-
-    if (pickedFiles != null && pickedFiles.isNotEmpty) {
-      
-      setState(() {
-        _images = pickedFiles.map((file) => File(file.path)).toList();
-        _selectedImage = _images.first;
-      });
-    }
-  }
+  String image = '';
 
   @override
   Widget build(BuildContext context) {
@@ -76,46 +62,22 @@ class _ProductScreenBodyState extends State<_ProductScreenBody> {
                   right: 20,
                   child: IconButton(
                     onPressed: () async {
-                      _pickImages();
+                      final picker = ImagePicker();
+                      final XFile? pickedFile = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 100,
+                      );
+                      if (pickedFile == null) return;
+                      image = pickedFile.path;
+                      productForm.product.picture = image;
+                      setState(() {
+                        
+                      });
                     },
                     icon: const Icon(Icons.camera_alt_outlined, size: 40, color: Colors.white),
                   ),
                 )
               ],
-            ),
-            if (_images.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Container(
-                height: 100,
-                width: double.infinity,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _images.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedImage = _images[index];
-                        });
-                      },
-                      child: Container(
-                        margin: EdgeInsets.all(5),
-                        width: 100,
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _images[index] == _selectedImage
-                                ? Colors.blue
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                        ),
-                        child: Image.file(_images[index], fit: BoxFit.cover),
-                      ),
-                    );
-                  },
-                ),
-              ),
             ),
             _ProductForm(),
             const SizedBox(height: 100),
@@ -128,7 +90,7 @@ class _ProductScreenBodyState extends State<_ProductScreenBody> {
             ? null
             : () async {
                 if (!productForm.isValidForm()) return;
-                final String? imageUrl = await widget.productService.uploadImage();
+                final String? imageUrl = await widget.productService.uploadImage(image);
                 if (imageUrl != null) productForm.product.picture = imageUrl;
                 await widget.productService.saveOrCreateProduct(productForm.product);
               },
@@ -198,15 +160,8 @@ class _ProductFormState extends State<_ProductForm> {
                 decoration: InputDecorations.authInputDecoration(labelText: 'Género', hintText: 'Género del producto'),
               ),
               const SizedBox(height: 20),
-              DropdownButtonFormField<String>(
-                value: selectedSize,
-                items: sizes[selectedGender]!.map((size) => DropdownMenuItem(value: size, child: Text(size))).toList(),
-                onChanged: (value) => setState(() => selectedSize = value!),
-                decoration: InputDecorations.authInputDecoration(labelText: 'Talla', hintText: 'Talla del producto'),
-              ),
-              const SizedBox(height: 20),
               TextFormField(
-                initialValue: product.price?.toString(),
+                initialValue: product.price.toString(),
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: (value) => product.price = double.tryParse(value) ?? 0.0,
@@ -214,36 +169,42 @@ class _ProductFormState extends State<_ProductForm> {
                 decoration: InputDecorations.authInputDecoration(hintText: 'Precio del producto', labelText: 'Precio:'),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: selectedColor,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => _selectColor(context, product),
-                    child: const Text('Seleccionar Color'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: selectedColor,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 30),
               SwitchListTile.adaptive(
                 value: product.available,
                 title: const Text('Disponible'),
                 activeColor: Colors.indigo,
                 onChanged: productForm.updateAvailability,
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
+            if(product.details != null && product.details!.isNotEmpty)
+              Container(
+                height:product.details!.length * 60 ,
+                child: ListView.builder(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: product.details!.length,
+                  itemBuilder: (context, index) {
+                    return Dismissible(
+                      key: Key(index.toString()), 
+                      child: Row(
+                        children: [
+                          Text('Detalle No. ${index + 1} con  color: ${product.details![index].color}'),
+                          Expanded(child: Container()),
+                          ElevatedButton(
+                            onPressed: (){}, 
+                            child: const Text(''), 
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(product.details![index].color.toColor())
+                            ),
+                          ),
+                        ],
+                      )
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              ProductDetaiWidget(sizes: sizes[selectedGender]!),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -251,7 +212,199 @@ class _ProductFormState extends State<_ProductForm> {
     );
   }
 
-  void _selectColor(BuildContext context, Product product) {
+  
+
+  BoxDecoration _buildBoxDecoration() => BoxDecoration(color: Colors.white);
+}
+
+class ProductDetaiWidget extends StatefulWidget {
+  ProductDetaiWidget({super.key, required this.sizes});
+  ProductDetails detail = ProductDetails('', [], '', []);
+  final List<String> sizes;
+
+  @override
+  State<ProductDetaiWidget> createState() => _ProductDetaiWidgetState();
+}
+
+class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
+  String selectedSize = '';
+  int quantity = 1; 
+  Color selectedColor = Colors.black;
+
+  @override
+  Widget build(BuildContext context) {
+    final productForm = Provider.of<ProductFormProvider>(context);
+    final size = MediaQuery.of(context).size;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      width: size.width,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 5),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 10),
+          if (widget.detail.sizes.length > 0)
+            Container(
+              height: widget.detail.sizes.length * 60.0,
+              child: ListView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: widget.detail.sizes.length,
+                itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text('Talla: ${widget.detail.sizes[index].keys.first} - Cantidad: ${widget.detail.sizes[index].values.first}'),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => {
+                      widget.detail.sizes.removeAt(index),
+                      setState(() {})
+                    },
+                  ),
+                );
+              }),
+            ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: 
+                widget.sizes.length > 0
+                  ? DropdownButtonFormField<String>(
+                      value: selectedSize.isEmpty ? widget.sizes.first : selectedSize,
+                      items: widget.sizes.map((size) => DropdownMenuItem(value: size, child: Text(size))).toList(),
+                      onChanged: (value) => setState(() => selectedSize = value!),
+                      decoration: InputDecorations.authInputDecoration(labelText: 'Talla', hintText: 'Talla del producto'),
+                    )
+                  : Container(),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: 
+                TextFormField(
+                  initialValue: "1",
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (value) => quantity = int.tryParse(value) ?? 1,
+                  validator: (value) => (value == null || value.isEmpty) ? 'La cantidad es necesaria' : null,
+                  decoration: InputDecorations.authInputDecoration(hintText: 'Cantidad de pares', labelText: 'Cantidad:'),
+                ),
+              ),
+              GestureDetector(
+                child: const Icon(
+                  Icons.add_circle_outline,
+                  size: 30,
+                ),
+                onTap: () => {
+                  widget.detail.sizes.add({int.parse(selectedSize.isEmpty ? widget.sizes.first : selectedSize): quantity}),
+                  widget.detail.color = selectedColor.toString(),
+                  setState(() {}),
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () async
+            {
+              final picker = ImagePicker();
+              final XFile? pickedFile = await picker.pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 100,
+              );
+
+              if (pickedFile == null) return;
+              widget.detail.mainImage = pickedFile.path;
+
+              setState(() {
+                
+              });
+            }, 
+            child: const Text('Seleccionar imagen principal')
+          ),
+          if (widget.detail.mainImage.isNotEmpty)
+          const ProductImage().getImage(widget.detail.mainImage,),
+          const Text('Imágenes del producto'),
+          ElevatedButton(
+            onPressed: () async {
+              _pickImages();
+            },
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+            child: const Text('Seleccionar imágenes'),
+          ),
+          const SizedBox(height: 10),
+          if (widget.detail.images.isNotEmpty)
+            Container(
+              height: 100,
+              width: double.infinity,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: widget.detail.images.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin: EdgeInsets.all(5),
+                    width: 100,
+                    child: const ProductImage().getImage(widget.detail.images[index]),
+                  );
+                },
+              ),
+            ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ElevatedButton(
+                        onPressed: () => {
+                          _selectColor(context),
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: selectedColor,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text(''),
+                      ),
+              const SizedBox(width: 20),
+              ElevatedButton(
+                onPressed: () => {
+                  productForm.addDetail(widget.detail),
+                  setState(() {
+                    widget.detail = ProductDetails('', [], '', []);
+                  }),
+                },
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
+                child: const Text('Agregar detalle'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
+      ),
+
+    );
+  }
+
+  Future<void> _pickImages() async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile>? pickedFiles = await picker.pickMultiImage();
+
+    if (pickedFiles != null && pickedFiles.isNotEmpty) {
+      setState(() {
+        widget.detail.images = pickedFiles.map((file) => File(file.path).path).toList();
+      });
+    }
+  }
+
+  void _selectColor(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -260,12 +413,10 @@ class _ProductFormState extends State<_ProductForm> {
           pickerColor: selectedColor,
           onColorChanged: (color) => setState(() {
             selectedColor = color;
-            product.color = color.value.toString(); // Guarda el color en el producto
+            widget.detail.color = selectedColor.value.toString();
           }),
         ),
       ),
     );
   }
-
-  BoxDecoration _buildBoxDecoration() => BoxDecoration(color: Colors.white);
 }

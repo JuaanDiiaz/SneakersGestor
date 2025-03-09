@@ -15,6 +15,13 @@ class ProductFormProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  addDetail(ProductDetails detail) {
+    product.details ??= [];
+
+    product.details!.add(detail);
+    notifyListeners();
+  }
+
 
   bool isValidForm() {
 
