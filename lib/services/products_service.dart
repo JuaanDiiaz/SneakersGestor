@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:gestor_tenis/models/models.dart';
 import 'package:http/http.dart' as http;
 
-
 class ProductsService extends ChangeNotifier {
-
   final String _baseUrl = 'tenis-98bc0-default-rtdb.firebaseio.com';
   final List<Product> products = [];
   late Product selectedProduct;
@@ -22,12 +20,11 @@ class ProductsService extends ChangeNotifier {
   }
 
   Future<List<Product>> loadProducts() async {
-
     isLoading = true;
     notifyListeners();
-    
-    final url = Uri.https( _baseUrl, 'products.json');
-    final resp = await http.get( url );
+
+    final url = Uri.https(_baseUrl, 'products.json');
+    final resp = await http.get(url);
 
     if (resp.body == 'null') {
       isLoading = false;
@@ -35,80 +32,69 @@ class ProductsService extends ChangeNotifier {
       return [];
     }
 
-    final Map<String, dynamic> productsMap = json.decode( resp.body );
+    final Map<String, dynamic> productsMap = json.decode(resp.body);
 
     productsMap.forEach((key, value) {
-      final tempProduct = Product.fromMap( value );
+      final tempProduct = Product.fromMap(value);
       tempProduct.id = key;
-      products.add( tempProduct );
+      products.add(tempProduct);
     });
-
 
     isLoading = false;
     notifyListeners();
 
     return products;
-
   }
 
-
-  Future saveOrCreateProduct( Product product ) async {
-
+  Future saveOrCreateProduct(Product product) async {
     isSaving = true;
     notifyListeners();
 
-    if ( product.id == null ) {
+    if (product.id == null) {
       // Es necesario crear
-      await createProduct( product );
+      await createProduct(product);
     } else {
       // Actualizar
-      await updateProduct( product );
+      await updateProduct(product);
     }
-
-
 
     isSaving = false;
     notifyListeners();
-
   }
-  
 
-  Future<String> updateProduct( Product product ) async {
+  Future<String> updateProduct(Product product) async {
+    await validateDetails();
 
-    await validateDetails(); 
-
-    final url = Uri.https( _baseUrl, 'products/${ product.id }.json');
-    final resp = await http.put( url, body: product.toJson() );
+    final url = Uri.https(_baseUrl, 'products/${product.id}.json');
+    final resp = await http.put(url, body: product.toJson());
     final decodedData = resp.body;
 
     //TODO: Actualizar el listado de productos
-    final index = products.indexWhere((element) => element.id == product.id );
+    final index = products.indexWhere((element) => element.id == product.id);
     products[index] = product;
 
     return product.id!;
-
   }
 
-  Future<String> createProduct( Product product ) async {
-    await validateDetails(); 
+  Future<String> createProduct(Product product) async {
+    await validateDetails();
 
-    final url = Uri.https( _baseUrl, 'products.json');
-    final resp = await http.post( url, body: product.toJson() );
-    final decodedData = json.decode( resp.body );
+    final url = Uri.https(_baseUrl, 'products.json');
+    final resp = await http.post(url, body: product.toJson());
+    final decodedData = json.decode(resp.body);
 
     product.id = decodedData['name'];
 
     products.add(product);
-    
 
     return product.id!;
-
   }
 
   Future<void> validateDetails() async {
-    if (selectedProduct.details != null && selectedProduct.details!.isNotEmpty) {
+    if (selectedProduct.details != null &&
+        selectedProduct.details!.isNotEmpty) {
       for (var detail in selectedProduct.details!) {
-        if (detail.mainImage.isNotEmpty && detail.mainImage.startsWith('/')){
+        if (detail.mainImage.isNotEmpty && detail.mainImage.startsWith('/')) {
           final uploadedImage = await uploadImage(detail.mainImage);
           if (uploadedImage != null) {
             detail.mainImage = uploadedImage;
@@ -123,45 +109,41 @@ class ProductsService extends ChangeNotifier {
           }
         }
       }
+    } else {
+      selectedProduct.available = false;
     }
   }
 
-  
-
-  void updateSelectedProductImage( String path ) {
-
+  void updateSelectedProductImage(String path) {
     selectedProduct.picture = path;
-    newPictureFile = File.fromUri( Uri(path: path) );
+    newPictureFile = File.fromUri(Uri(path: path));
 
     notifyListeners();
-
   }
 
   Future<String?> uploadImage(String imagePath) async {
-
     isSaving = true;
     notifyListeners();
 
-    final url = Uri.parse('https://api.cloudinary.com/v1_1/duw0j4d3p/image/upload?upload_preset=tenis_v1');
+    final url = Uri.parse(
+        'https://api.cloudinary.com/v1_1/duw0j4d3p/image/upload?upload_preset=tenis_v1');
 
-    final imageUploadRequest = http.MultipartRequest('POST', url );
+    final imageUploadRequest = http.MultipartRequest('POST', url);
 
-    final file = await http.MultipartFile.fromPath('file', imagePath );
+    final file = await http.MultipartFile.fromPath('file', imagePath);
 
     imageUploadRequest.files.add(file);
 
     final streamResponse = await imageUploadRequest.send();
     final resp = await http.Response.fromStream(streamResponse);
 
-    if ( resp.statusCode != 200 && resp.statusCode != 201 ) {
+    if (resp.statusCode != 200 && resp.statusCode != 201) {
       print('algo salio mal');
-      print( resp.body );
+      print(resp.body);
       return null;
     }
 
-    final decodedData = json.decode( resp.body );
+    final decodedData = json.decode(resp.body);
     return decodedData['secure_url'];
-
   }
-
 }

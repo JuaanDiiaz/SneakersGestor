@@ -211,13 +211,15 @@ class _ProductFormState extends State<_ProductForm> {
                         key: Key(index.toString()),
                         background: Container(
                           color: Colors.red,
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: const Icon(Icons.delete, color: Colors.white),
                         ),
-                        secondaryBackground: Container(
-                          color: Colors.red,
-                        ),
+                        direction: DismissDirection.startToEnd,
                         onDismissed: (_) {
-                          product.details!.removeAt(index);
-                          setState(() {});
+                          setState(() {
+                            product.details!.removeAt(index);
+                          });
                         },
                         child: Card(
                           elevation: 4,
@@ -291,11 +293,18 @@ class _ProductFormState extends State<_ProductForm> {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(3),
-                    color: Colors.amber,
+                    color: Theme.of(context).primaryColor,
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 5,
+                      ),
+                    ],
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text('Agregar detalle'),
+                    padding: const EdgeInsets.all(10.0),
+                    child: Text('Agregar detalle',
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ),
                 onTap: () {

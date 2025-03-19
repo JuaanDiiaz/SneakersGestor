@@ -12,27 +12,57 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final productsService = Provider.of<ProductsService>(context);
-    
+
     if (productsService.isLoading) return LoadingScreen();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Productos'),
       ),
-      body: ListView.builder(
-        itemCount: productsService.products.length,
-        itemBuilder: (BuildContext context, int index) => productsService.products == 0 ? Center(
-          child: Text('No hay productos'),
-        ) : GestureDetector(
-          onTap: () {
-            productsService.selectedProduct = productsService.products[index].copy();
-            Navigator.pushNamed(context, 'product');
-          },
-          child: ProductCard(
-            product: productsService.products[index],
-          ),
-        ),
-      ),
+      body: productsService.products.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_cart,
+                    size: 100,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'No hay productos',
+                    style: TextStyle(
+                      fontSize: 24,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Agrega nuevos productos usando el botón "+"',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              itemCount: productsService.products.length,
+              itemBuilder: (BuildContext context, int index) => GestureDetector(
+                onTap: () {
+                  productsService.selectedProduct =
+                      productsService.products[index].copy();
+                  Navigator.pushNamed(context, 'product');
+                },
+                child: ProductCard(
+                  product: productsService.products[index],
+                ),
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
