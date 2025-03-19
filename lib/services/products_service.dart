@@ -75,6 +75,8 @@ class ProductsService extends ChangeNotifier {
 
   Future<String> updateProduct( Product product ) async {
 
+    await validateDetails(); 
+
     final url = Uri.https( _baseUrl, 'products/${ product.id }.json');
     final resp = await http.put( url, body: product.toJson() );
     final decodedData = resp.body;
@@ -88,6 +90,7 @@ class ProductsService extends ChangeNotifier {
   }
 
   Future<String> createProduct( Product product ) async {
+    await validateDetails(); 
 
     final url = Uri.https( _baseUrl, 'products.json');
     final resp = await http.post( url, body: product.toJson() );
@@ -101,6 +104,28 @@ class ProductsService extends ChangeNotifier {
     return product.id!;
 
   }
+
+  Future<void> validateDetails() async {
+    if (selectedProduct.details != null && selectedProduct.details!.isNotEmpty) {
+      for (var detail in selectedProduct.details!) {
+        if (detail.mainImage.isNotEmpty && detail.mainImage.startsWith('/')){
+          final uploadedImage = await uploadImage(detail.mainImage);
+          if (uploadedImage != null) {
+            detail.mainImage = uploadedImage;
+          }
+        }
+        for (int i = 0; i < detail.images.length; i++) {
+          if (detail.images[i].startsWith('/')) {
+            final uploadedImage = await uploadImage(detail.images[i]);
+            if (uploadedImage != null) {
+              detail.images[i] = uploadedImage;
+            }
+          }
+        }
+      }
+    }
+  }
+
   
 
   void updateSelectedProductImage( String path ) {

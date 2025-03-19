@@ -69,7 +69,7 @@ class ProductDetails {
     ProductDetails(this.color, this.sizes, this.mainImage, this.images);
 
     String color;
-    List<Map<int,int>> sizes;
+    List<Map<String,int>> sizes;
     String mainImage;
     List<String> images;
 
@@ -80,7 +80,7 @@ class ProductDetails {
 
     factory ProductDetails.fromMap(Map<String, dynamic> json) => ProductDetails(
         json["color"],
-        List<Map<int,int>>.from(json["sizes"].map((x) => x)),
+        List<Map<String, int>>.from(json["sizes"].map((x) => Map<String, int>.from(x.map((k, v) => MapEntry(k, v.toInt()))))),
         json["mainImage"],
         List<String>.from(json["images"].map((x) => x)),
     );
