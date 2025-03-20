@@ -43,6 +43,7 @@ class _ProductScreenBodyState extends State<_ProductScreenBody> {
     final productForm = Provider.of<ProductFormProvider>(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -310,15 +311,27 @@ class _ProductFormState extends State<_ProductForm> {
                 onTap: () {
                   showModalBottomSheet<void>(
                     context: context,
+                    isScrollControlled: true,
                     builder: (BuildContext modalContext) {
-                      return ChangeNotifierProvider.value(
-                        value: Provider.of<ProductFormProvider>(context,
-                            listen: false),
-                        child:
-                            ProductDetaiWidget(sizes: sizes[selectedGender]!),
+                      return DraggableScrollableSheet(
+                        initialChildSize: 0.5, // Altura inicial del modal
+                        minChildSize: 0.3,     // Altura mínima
+                        maxChildSize: 0.9,     // Altura máxima (casi pantalla completa)
+                        expand: false,         // Evita que el modal ocupe toda la pantalla automáticamente
+                        builder: (_, controller) => ChangeNotifierProvider.value(
+                          value: Provider.of<ProductFormProvider>(context, listen: false),
+                          child: SingleChildScrollView(
+                            controller: controller,
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: ProductDetaiWidget(sizes: sizes[selectedGender]!),
+                          ),
+                        ),
                       );
                     },
                   );
+
                 },
               ),
               SizedBox(
