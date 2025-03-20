@@ -132,6 +132,7 @@ class _ProductFormState extends State<_ProductForm> {
   Widget build(BuildContext context) {
     final productForm = Provider.of<ProductFormProvider>(context);
     final product = productForm.product;
+    final size = MediaQuery.of(context).size;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -290,49 +291,25 @@ class _ProductFormState extends State<_ProductForm> {
                   ),
                 ),
               const SizedBox(height: 20),
-              GestureDetector(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(3),
-                    color: Theme.of(context).primaryColor,
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Text('Agregar detalle',
-                        style: const TextStyle(color: Colors.white)),
+              ElevatedButton.icon(
+                onPressed: () {
+                  showModalBottomSheet(
+                      backgroundColor: Colors.transparent,
+                      context: context,
+                      builder: (_) => ChangeNotifierProvider.value(
+                            value: Provider.of<ProductFormProvider>(context,
+                                listen: false),
+                            child: ProductDetaiWidget(
+                                sizes: sizes[selectedGender]!),
+                          ));
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar detalle'),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-                onTap: () {
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (BuildContext modalContext) {
-                      return DraggableScrollableSheet(
-                        initialChildSize: 0.5, // Altura inicial del modal
-                        minChildSize: 0.3,     // Altura mínima
-                        maxChildSize: 0.9,     // Altura máxima (casi pantalla completa)
-                        expand: false,         // Evita que el modal ocupe toda la pantalla automáticamente
-                        builder: (_, controller) => ChangeNotifierProvider.value(
-                          value: Provider.of<ProductFormProvider>(context, listen: false),
-                          child: SingleChildScrollView(
-                            controller: controller,
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(context).viewInsets.bottom,
-                            ),
-                            child: ProductDetaiWidget(sizes: sizes[selectedGender]!),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-
-                },
               ),
               SizedBox(
                 height: 20,
@@ -364,49 +341,53 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
   @override
   Widget build(BuildContext context) {
     final productForm = Provider.of<ProductFormProvider>(context);
-    final size = MediaQuery.of(context).size;
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      width: size.width,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
+    return Container(
+      padding: const EdgeInsets.all(20),
+      height: 500,
+      decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 5),
-        ],
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
       ),
       child: SingleChildScrollView(
         child: Column(
+          mainAxisSize: MainAxisSize
+              .min, // Evita que el Column intente ocupar todo el espacio
           children: [
             const SizedBox(height: 10),
-            if (widget.detail.sizes.length > 0)
-              Container(
-                height: widget.detail.sizes.length * 60.0,
+            if (widget.detail.sizes.isNotEmpty)
+              SizedBox(
+                height: widget.detail.sizes.length *
+                    60.0, // Mantener una altura definida
                 child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: widget.detail.sizes.length,
-                    itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(
-                            'Talla: ${widget.detail.sizes[index].keys.first} - Cantidad: ${widget.detail.sizes[index].values.first}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () => {
-                            widget.detail.sizes.removeAt(index),
-                            setState(() {})
-                          },
-                        ),
-                      );
-                    }),
+                  physics:
+                      const NeverScrollableScrollPhysics(), // Para evitar conflictos de scroll
+                  itemCount: widget.detail.sizes.length,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      title: Text(
+                        'Talla: ${widget.detail.sizes[index].keys.first} - Cantidad: ${widget.detail.sizes[index].values.first}',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () {
+                          setState(() {
+                            widget.detail.sizes.removeAt(index);
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             const SizedBox(height: 20),
             Row(
               children: [
                 Expanded(
-                  child: widget.sizes.length > 0
+                  child: widget.sizes.isNotEmpty
                       ? DropdownButtonFormField<String>(
                           value: selectedSize.isEmpty
                               ? widget.sizes.first
@@ -417,86 +398,101 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
                               .toList(),
                           onChanged: (value) =>
                               setState(() => selectedSize = value!),
-                          decoration: InputDecorations.authInputDecoration(
-                              labelText: 'Talla',
-                              hintText: 'Talla del producto'),
+                          decoration: InputDecoration(
+                            labelText: 'Talla',
+                            hintText: 'Talla del producto',
+                          ),
                         )
                       : Container(),
                 ),
                 const SizedBox(width: 20),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: "1",
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    onChanged: (value) => quantity = int.tryParse(value) ?? 1,
-                    validator: (value) => (value == null || value.isEmpty)
-                        ? 'La cantidad es necesaria'
-                        : null,
-                    decoration: InputDecorations.authInputDecoration(
-                        hintText: 'Cantidad de pares', labelText: 'Cantidad:'),
-                  ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        if (quantity > 1) {
+                          setState(() {
+                            quantity--;
+                          });
+                        }
+                      },
+                    ),
+                    Text('$quantity'),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () {
+                        setState(() {
+                          quantity++;
+                        });
+                      },
+                    ),
+                  ],
                 ),
                 GestureDetector(
-                  child: const Icon(
-                    Icons.add_circle_outline,
-                    size: 30,
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 10),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.blue,
+                    ),
+                    child: const Icon(
+                      Icons.add_circle_outline,
+                      size: 30,
+                    ),
                   ),
-                  onTap: () => {
-                    widget.detail.sizes.add({
-                      selectedSize.isEmpty ? widget.sizes.first : selectedSize:
-                          quantity
-                    }),
-                    widget.detail.color = selectedColor.toString(),
-                    setState(() {}),
+                  onTap: () {
+                    setState(() {
+                      widget.detail.sizes.add({
+                        selectedSize.isEmpty
+                            ? widget.sizes.first
+                            : selectedSize: quantity
+                      });
+                      widget.detail.color = selectedColor.toString();
+                      quantity = 1;
+                    });
                   },
                 ),
               ],
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-                onPressed: () async {
-                  final picker = ImagePicker();
-                  final XFile? pickedFile = await picker.pickImage(
-                    source: ImageSource.gallery,
-                    imageQuality: 100,
-                  );
+              onPressed: () async {
+                final picker = ImagePicker();
+                final XFile? pickedFile = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 100,
+                );
 
-                  if (pickedFile == null) return;
-                  widget.detail.mainImage = pickedFile.path;
-
-                  setState(() {});
-                },
-                child: const Text('Seleccionar imagen principal')),
+                if (pickedFile != null) {
+                  setState(() {
+                    widget.detail.mainImage = pickedFile.path;
+                  });
+                }
+              },
+              child: const Text('Seleccionar imagen principal'),
+            ),
             if (widget.detail.mainImage.isNotEmpty)
-              const ProductImage().getImage(
-                widget.detail.mainImage,
-              ),
+              ProductImage().getImage(widget.detail.mainImage),
             const Text('Imágenes del producto'),
             ElevatedButton(
-              onPressed: () async {
-                _pickImages();
-              },
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20)),
-              ),
+              onPressed: _pickImages,
               child: const Text('Seleccionar imágenes'),
             ),
             const SizedBox(height: 10),
             if (widget.detail.images.isNotEmpty)
-              Container(
+              SizedBox(
                 height: 100,
-                width: double.infinity,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: widget.detail.images.length,
                   itemBuilder: (context, index) {
                     return Container(
-                      margin: EdgeInsets.all(5),
+                      margin: const EdgeInsets.all(5),
                       width: 100,
-                      child: const ProductImage()
-                          .getImage(widget.detail.images[index]),
+                      child:
+                          ProductImage().getImage(widget.detail.images[index]),
                     );
                   },
                 ),
@@ -506,9 +502,7 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
-                  onPressed: () => {
-                    _selectColor(context),
-                  },
+                  onPressed: () => _selectColor(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: selectedColor,
                     foregroundColor: Colors.white,
@@ -517,16 +511,12 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
                 ),
                 const SizedBox(width: 20),
                 ElevatedButton(
-                  onPressed: () => {
-                    productForm.addDetail(widget.detail),
+                  onPressed: () {
+                    productForm.addDetail(widget.detail);
                     setState(() {
                       widget.detail = ProductDetails('', [], '', []);
-                    }),
+                    });
                   },
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                  ),
                   child: const Text('Agregar detalle'),
                 ),
               ],
