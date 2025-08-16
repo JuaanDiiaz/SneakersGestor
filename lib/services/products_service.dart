@@ -79,6 +79,13 @@ class ProductsService extends ChangeNotifier {
   Future<String> createProduct(Product product) async {
     await validateDetails();
 
+    if (product.picture!.startsWith('/')) {
+      final uploadedImage = await uploadImage(product.picture!);
+      if (uploadedImage != null) {
+        product.picture = uploadedImage;
+      }
+    }
+
     final url = Uri.https(_baseUrl, 'products.json');
     final resp = await http.post(url, body: product.toJson());
     final decodedData = json.decode(resp.body);

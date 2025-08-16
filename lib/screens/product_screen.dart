@@ -230,7 +230,7 @@ class _ProductFormState extends State<_ProductForm> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          color: Color(int.parse(detail.color)),
+                          color: Color(detail.color),
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Row(
@@ -326,7 +326,7 @@ class _ProductFormState extends State<_ProductForm> {
 
 class ProductDetaiWidget extends StatefulWidget {
   ProductDetaiWidget({super.key, required this.sizes});
-  ProductDetails detail = ProductDetails('', [], '', []);
+  ProductDetails detail = ProductDetails(0, [], '', []);
   final List<String> sizes;
 
   @override
@@ -449,7 +449,7 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
                             ? widget.sizes.first
                             : selectedSize: quantity
                       });
-                      widget.detail.color = selectedColor.toString();
+                      widget.detail.color = selectedColor.value;
                       quantity = 1;
                     });
                   },
@@ -514,7 +514,7 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
                   onPressed: () {
                     productForm.addDetail(widget.detail);
                     setState(() {
-                      widget.detail = ProductDetails('', [], '', []);
+                      widget.detail = ProductDetails(0, [], '', []);
                     });
                   },
                   child: const Text('Agregar detalle'),
@@ -549,7 +549,7 @@ class _ProductDetaiWidgetState extends State<ProductDetaiWidget> {
           pickerColor: selectedColor,
           onColorChanged: (color) => setState(() {
             selectedColor = color;
-            widget.detail.color = selectedColor.value.toString();
+            widget.detail.color = color.value;
           }),
         ),
       ),
